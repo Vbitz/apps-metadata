@@ -11,6 +11,12 @@ on:
       - "apps/**/meta.json"
   workflow_dispatch:
 
+# Prevent duplicate runs of the same workflow
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # If a newer commit triggers the workflow, cancel the current run
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest

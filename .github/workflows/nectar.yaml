@@ -7,6 +7,12 @@ on:
         description: "Path to the app directory (e.g., apps/app-name/version)"
         required: true
 
+# Prevent duplicate runs of the same workflow for the same app
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.inputs.app }}
+  # If a newer commit triggers the workflow, cancel the current run
+  cancel-in-progress: true
+
 jobs:
   update-marker:
     runs-on: ubuntu-latest

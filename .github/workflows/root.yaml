@@ -54,6 +54,8 @@ jobs:
                 continue
               fi
 
+              ls -la $app
+
               # Check if the marker file does not exist or is older than meta.json
               if [ ! -f "$app/$marker" ] || [ "$app/$marker" -ot "$app/meta.json" ]; then
                 echo "Triggering $workflow_file for $app"

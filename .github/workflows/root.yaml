@@ -1,0 +1,39 @@
+name: Root Workflow
+
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch and only if they change the meta.json file
+  push:
+    branches: ["main"]
+    paths:
+      - "apps/**/meta.json"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "apps/**/meta.json"
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
+      # Go through each directory recursively under apps/ looking for apps/<name>/<version>/meta.json
+      - name: Find all apps
+        id: find_apps
+        run: |
+          find apps -name meta.json | xargs -I {} dirname {} | sort | uniq
+
+      # For each app. If a pushed_to_nectar file doesn't exist or is older than meta.json then trigger a workflow to create it.
+      - name: Trigger Nectar workflows for apps
+        run: |
+          for app in $(cat $GITHUB_WORKSPACE/.github/workflows/find_apps); do
+            if [ ! -f $app/pushed_to_nectar ] || [ $app/pushed_to_nectar -ot $app/meta.json ]; then
+              echo "Triggering workflow for $app"
+              curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/nectar.yaml/dispatches -d '{"ref":"main","inputs":{"app":"'$app'"}}'
+            fi
+          done

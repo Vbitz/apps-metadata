@@ -1,0 +1,37 @@
+name: Nectar Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "Path to the app directory (e.g., apps/app-name/version)"
+        required: true
+
+jobs:
+  update-marker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create or update pushed_to_nectar marker
+        run: |
+          echo "Creating pushed_to_nectar marker in ${{ github.event.inputs.app }}"
+          # Create (or update) the file with a timestamp
+          echo "Pushed to Nectar on $(date)" > "${{ github.event.inputs.app }}/pushed_to_nectar"
+
+      - name: Commit and push marker file
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add "${{ github.event.inputs.app }}/pushed_to_nectar"
+          # Only commit if there are changes
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Update pushed_to_nectar marker for ${{ github.event.inputs.app }}"
+            git push
+          fi

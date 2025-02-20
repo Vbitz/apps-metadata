@@ -35,6 +35,9 @@ jobs:
           SUBWORKFLOWS: >
             [{"workflow_file": "nectar.yaml", "marker": "pushed_to_nectar"}]
         run: |
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+          echo "Changed files: $CHANGED_FILES"
+
           echo "Using subworkflows: $SUBWORKFLOWS"
           # Loop over each app directory that contains a meta.json file
           for app in $(find apps -name meta.json | xargs -I {} dirname {} | sort | uniq); do
@@ -42,6 +45,12 @@ jobs:
             for sub in $(echo "$SUBWORKFLOWS" | jq -c '.[]'); do
               marker=$(echo "$sub" | jq -r '.marker')
               workflow_file=$(echo "$sub" | jq -r '.workflow_file')
+              # Unless this workflow was triggered manually, skip if the app is not in the push that triggered the workflow
+              if [ "${{ github.event_name }}" != "workflow_dispatch" ] && ! echo "$CHANGED_FILES" | grep -q "^$app/"; then
+                echo "Skipping $workflow_file for $app"
+                continue
+              fi
+
               # Check if the marker file does not exist or is older than meta.json
               if [ ! -f "$app/$marker" ] || [ "$app/$marker" -ot "$app/meta.json" ]; then
                 echo "Triggering $workflow_file for $app"

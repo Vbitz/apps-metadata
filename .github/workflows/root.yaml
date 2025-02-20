@@ -23,6 +23,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Do a full checkout to ensure we have can see all the changed files.
+          fetch-depth: 0
 
       - name: Trigger subworkflows for apps
         env:
